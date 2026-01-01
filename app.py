@@ -450,6 +450,9 @@ def create_xlsx_file(chart_rows, filename):
     
     wb.save(filename)
 
+# Ensure static directory exists when app starts
+os.makedirs('static', exist_ok=True)
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
