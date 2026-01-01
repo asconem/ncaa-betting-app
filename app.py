@@ -130,8 +130,153 @@ def load_team_name_mapping():
 # Load the mapping when the module is imported
 load_team_name_mapping()
 
+def derive_abbreviation(team_name):
+    """Derive team abbreviation from full name - EXACT copy from skill"""
+    abbrev_map = {
+        'Air Force': 'AF', 'Akron': 'AKR', 'Alabama State': 'ALST', 'Middle Tennessee': 'MTSU',
+        'Michigan': 'MICH', 'Harvard': 'HARV', 'Penn State': 'PSU', 'Arizona': 'ARIZ',
+        'UConn': 'CONN', 'Chattanooga': 'UTC', 'South Carolina State': 'SCST',
+        'South Alabama': 'USA', 'Jacksonville State': 'JXST', 'Bethune-Cookman': 'BCU',
+        'Ohio': 'OHIO', 'Louisiana Tech': 'LT', 'Indiana State': 'INST', 'Hofstra': 'HOF',
+        'Temple': 'TEM', 'Tennessee Tech': 'TNTC', 'South Carolina Upstate': 'UPST',
+        'Howard': 'HOW', 'Stetson': 'STET', 'North Florida': 'UNF', 'Wofford': 'WOF',
+        'William & Mary': 'WM', 'Bowling Green': 'BGSU', 'Indiana': 'IU', 'Utah State': 'USU',
+        'St. Bonaventure': 'SBU', 'Western Michigan': 'WMU', 'UNC Wilmington': 'UNCW',
+        'North Carolina Central': 'NCC', 'Kent State': 'KENT', 'Old Dominion': 'ODU',
+        'Northern Illinois': 'NIU', 'Louisiana': 'UL', 'UL Monroe': 'ULM', 'Texas State': 'TXST',
+        'Southern Miss': 'USM', 'Southeast Missouri State': 'SEMO', 'Southern Indiana': 'USI',
+        'Loyola Chicago': 'LUC', 'Santa Clara': 'SCU', 'James Madison': 'JMU',
+        'Georgia Southern': 'GASO', 'Omaha': 'OMA', 'Portland State': 'PRST',
+        'UC Riverside': 'UCR', 'Sacramento State': 'SAC', 'Northeastern': 'NE',
+        'Northwestern': 'NU', 'Central Michigan': 'CMU', 'Liberty': 'LIB',
+        'Chicago State': 'CHST', 'Saint Francis': 'SFPA', 'Georgia State': 'GAST',
+        'Denver': 'DEN', 'Marshall': 'MRSH', 'Grand Canyon': 'GCU', 'UT Martin': 'UTM',
+        'Utah Tech': 'UTU', 'Florida Gulf Coast': 'FGCU', 'Samford': 'SAM',
+        'Youngstown State': 'YSU', 'Toledo': 'TOL', 'Valparaiso': 'VALP',
+        'Cleveland State': 'CLE', 'Villanova': 'VILL', 'La Salle': 'LAS', 'Bryant': 'BRY',
+        'Virginia Tech': 'VT', 'Bellarmine': 'BELL', 'Notre Dame': 'ND', 'VMI': 'VMI',
+        'Richmond': 'RICH', 'UMBC': 'UMBC', 'George Washington': 'GW',
+        'Eastern Washington': 'EWU', 'Central Arkansas': 'CARK', 'Loyola Maryland': 'LOM',
+        'Duquesne': 'DUQ', "Mount St. Mary's": 'MSMT', 'Maryland': 'MD',
+        'UNC Asheville': 'UNCA', 'UNC Greensboro': 'UNCG', 'Western Carolina': 'WCU',
+        'Wyoming': 'WYO', 'Sam Houston': 'SHSU', 'Maine': 'ME', 'Merrimack': 'MRMK',
+        'Dayton': 'DAY', 'Marquette': 'MARQ', 'UC Irvine': 'UCI', 'Utah Valley': 'UVU',
+        'UMass Lowell': 'UML', 'Bradley': 'BRAD', 'North Dakota': 'UND',
+        'South Dakota': 'SDAK', 'Northern Colorado': 'UNCO', 'Southern Illinois': 'SIU',
+        'Prairie View A&M': 'PVAM', 'Creighton': 'CREI', 'South Florida': 'USF',
+        'Oklahoma State': 'OKST', 'Kansas City': 'UMKC', 'TCU': 'TCU', 'Lipscomb': 'LIP',
+        'Belmont': 'BEL', 'Jackson State': 'JKST', 'Auburn': 'AUB', 'Arkansas State': 'ARST',
+        "Saint Mary's": 'SMC', 'Campbell': 'CAM', 'Weber State': 'WEB', 'Southern Utah': 'SUU',
+        'Washington State': 'WSU', 'Buffalo': 'BUF', 'Bucknell': 'BUCK',
+        'Tarleton State': 'TAR', 'Tarleton St': 'TAR', 'Sacred Heart': 'SHU',
+        'Dartmouth': 'DART', 'Wright State': 'WRST', 'Evansville': 'EVAN',
+        'Mississippi Valley State': 'MVSU', 'Mississippi Valley St': 'MVSU',
+        'Morehead State': 'MORE', 'Morehead St': 'MORE', 'Montana State': 'MTST',
+        'Montana St': 'MTST', 'Mississippi State': 'MSST', 'Mississippi St': 'MSST',
+        'Tulane': 'TULN', 'Boise State': 'BOIS', 'Georgetown': 'GTWN',
+        'Long Island University': 'LIU', 'Long Island': 'LIU', 'Oral Roberts': 'ORU',
+        'UC San Diego': 'UCSD', 'Loyola Marymount': 'LMU', 'East Tennessee State': 'ETSU',
+        'East Tennessee St': 'ETSU', 'North Carolina A&T': 'NCAT', 'Abilene Christian': 'ACU',
+        'Pacific': 'PACI', 'Queens University': 'QUC', 'Queens': 'QUC',
+        'California Baptist': 'CBU', 'Cal Baptist': 'CBU', 'Southern': 'SOU',
+        'Drexel': 'DREX', 'Florida International': 'FIU', 'Marist': 'MARI',
+        'Lamar': 'LAM', 'Delaware': 'DELA', 'Alabama': 'ALA', 'Illinois': 'ILL',
+        'North Carolina': 'UNC', 'Duke': 'DUKE', 'Kentucky': 'UK', 'Kansas': 'KU',
+        'Gonzaga': 'GONZ', 'UCLA': 'UCLA', 'USC': 'USC', 'Michigan State': 'MSU',
+        'Ohio State': 'OSU', 'Florida State': 'FSU', 'NC State': 'NCST', 'Virginia': 'UVA',
+        'Purdue': 'PUR', 'Wisconsin': 'WISC', 'Iowa': 'IOWA', 'Texas': 'TEX',
+        'Baylor': 'BAY', 'Tennessee': 'TENN', 'Arkansas': 'ARK', 'LSU': 'LSU',
+        'Florida': 'FLA', 'Georgia': 'UGA', 'Missouri': 'MIZZ', 'Missouri State': 'MOST',
+        'Missouri St': 'MOST', 'Texas A&M': 'TAMU', 'East Texas A&M': 'ETAM',
+        'Mississippi': 'MISS', 'Vanderbilt': 'VAN', 'South Carolina': 'SC',
+        'Iowa State': 'ISU', 'Kansas State': 'KSU', 'West Virginia': 'WVU',
+        'Oklahoma': 'OU', 'Texas Tech': 'TTU', 'Arizona State': 'ASU', 'Colorado': 'COLO',
+        'Utah': 'UTAH', 'Oregon': 'ORE', 'Washington': 'WASH', 'Stanford': 'STAN',
+        'California': 'CAL', 'Oregon State': 'ORST', 'Syracuse': 'SYR', 'Louisville': 'LOU',
+        'Pittsburgh': 'PITT', 'Miami': 'MIA', 'Miami (OH)': 'M-OH', 'Miami OH': 'M-OH',
+        'Boston College': 'BC', 'Clemson': 'CLEM', 'Wake Forest': 'WAKE',
+        'Georgia Tech': 'GT', 'Providence': 'PROV', 'Xavier': 'XAV', 'Butler': 'BUT',
+        'Seton Hall': 'HALL', "St. John's": 'SJU', 'St. Thomas-Minnesota': 'STMN',
+        'DePaul': 'DEP', 'BYU': 'BYU', 'Houston': 'HOU', 'Cincinnati': 'CIN',
+        'Memphis': 'MEM', 'SMU': 'SMU', 'UCF': 'UCF', 'Wichita State': 'WICH',
+        'San Diego State': 'SDSU', 'Colorado State': 'CSU', 'Fresno State': 'FRES',
+        'Nevada': 'NEV', 'New Mexico': 'UNM', 'San Jose State': 'SJSU', 'UNLV': 'UNLV',
+        'Le Moyne': 'LEM', 'Ball State': 'BALL', "Saint Joseph's": 'JOES',
+        'App State': 'APP', 'UTSA': 'UTSA', 'Tennessee State': 'TNST',
+        'William & Mary': 'W&M', 'Robert Morris': 'RMU', 'New Hampshire': 'UNH',
+        'Fairfield': 'FAIR', 'Stonehill': 'STON', 'Quinnipiac': 'QUIN', 'Yale': 'YALE',
+        'Vermont': 'UVM', 'Cornell': 'COR', 'Monmouth': 'MONM', 'Lafayette': 'LAF',
+        'Pennsylvania': 'PENN', 'Mercyhurst': 'MERC', 'Fordham': 'FORD', 'Colgate': 'COLG',
+        'Alabama A&M': 'AAMU', 'Coastal Carolina': 'CCU', 'Florida Atlantic': 'FAU',
+        'Charleston': 'CHSN', 'Charleston Southern': 'CHSO', 'Charlotte': 'CLT',
+        'North Texas': 'UNT', 'Longwood': 'LONG', 'American University': 'AMER',
+        'The Citadel': 'CIT', 'Presbyterian': 'PRES', 'San José State': 'SJSU',
+        'San Diego': 'USD', 'Long Beach State': 'LBSU', 'Cal State Bakersfield': 'CSUB',
+        'Coppin State': 'COPP', 'Norfolk State': 'NORF', 'Tulsa': 'TLSA',
+        'Rutgers': 'RUTG', 'Massachusetts': 'MASS', 'Elon': 'ELON',
+        'Central Connecticut': 'CCSU', 'Davidson': 'DAV', 'Furman': 'FUR', 'Iona': 'IONA',
+        'Binghamton': 'BING', 'High Point': 'HPU', 'Lindenwood': 'LIN',
+        'Murray State': 'MUR', 'Northern Arizona': 'NAU', 'North Alabama': 'UNA',
+        'Rhode Island': 'URI', 'Seattle U': 'SEA', 'SIU Edwardsville': 'SIUE',
+        'South Dakota State': 'SDST', 'Western Kentucky': 'WKU', 'Winthrop': 'WIN',
+        'Holy Cross': 'HC', 'Oakland': 'OAKL', 'Montana': 'MONT',
+    }
+    
+    if team_name in abbrev_map:
+        return abbrev_map[team_name]
+    
+    # Fallback
+    words = team_name.replace('University of ', '').replace('College of ', '').split()
+    if len(words) == 1:
+        return words[0][:4].upper()
+    if len(words) <= 3:
+        return ''.join(w[0] for w in words).upper()
+    return words[0][:4].upper()
+
+def flip_spread_if_needed(market, away_team, home_team, away_cover, home_cover):
+    """Flip spread to show higher cover % team's perspective - EXACT copy from skill"""
+    if not market or market == 'N/A' or not away_cover or not home_cover:
+        return 'N/A'
+    
+    if isinstance(market, str):
+        return market
+    
+    away_pct = float(away_cover.replace('%', ''))
+    home_pct = float(home_cover.replace('%', ''))
+    
+    if away_pct == home_pct:
+        return market['display']
+    
+    original_abbrev = market['original_abbrev']
+    spread_value = float(market['value'])
+    
+    is_away_higher = away_pct > home_pct
+    away_abbrev = derive_abbreviation(away_team)
+    home_abbrev = derive_abbreviation(home_team)
+    
+    def abbrev_matches(abbrev1, abbrev2):
+        a1, a2 = abbrev1.upper(), abbrev2.upper()
+        if a1 == a2:
+            return True
+        if a1.startswith(a2) or a2.startswith(a1):
+            return True
+        return False
+    
+    original_refers_to_away = abbrev_matches(original_abbrev, away_abbrev)
+    
+    if is_away_higher:
+        if original_refers_to_away:
+            return f"{away_abbrev} {spread_value:+g}"
+        else:
+            return f"{away_abbrev} {-spread_value:+g}"
+    else:
+        if not original_refers_to_away:
+            return f"{home_abbrev} {spread_value:+g}"
+        else:
+            return f"{home_abbrev} {-spread_value:+g}"
+
 def parse_espn_schedule_from_text(text):
-    """Parse ESPN schedule from pasted text"""
+    """Parse ESPN schedule - returns spread as dictionary"""
     lines = text.strip().split('\n')
     format_type = detect_schedule_format(lines)
     
@@ -141,24 +286,21 @@ def parse_espn_schedule_from_text(text):
         return parse_desktop_format(lines)
 
 def detect_schedule_format(lines):
-    """Detect whether schedule is from mobile or desktop format"""
+    """Detect mobile vs desktop format"""
     for i in range(min(100, len(lines) - 2)):
         line = lines[i].strip()
         if line and i+1 < len(lines):
             next_line = lines[i+1].strip()
-            
             if re.match(r'^\(\d+-\d+.*?\)$', next_line):
                 return 'desktop'
-            
             if re.match(r'^\d+-\d+$', next_line):
                 if i+2 < len(lines):
                     if lines[i+2].strip() == '' or re.match(r'^\d+-\d+$', lines[i+3].strip() if i+3 < len(lines) else ''):
                         return 'mobile'
-    
     return 'desktop'
 
 def parse_desktop_format(lines):
-    """Parse desktop format schedule"""
+    """Parse desktop format - RETURNS SPREAD AS DICT"""
     games = []
     i = 0
     
@@ -184,7 +326,11 @@ def parse_desktop_format(lines):
                         if spread_match:
                             team_abbrev = spread_match.group(1)
                             spread_value = spread_match.group(2)
-                            spread = {'original_abbrev': team_abbrev, 'value': spread_value, 'display': f"{team_abbrev} {spread_value}"}
+                            spread = {
+                                'original_abbrev': team_abbrev,
+                                'value': spread_value,
+                                'display': f"{team_abbrev} {spread_value}"
+                            }
                     j += 1
                     continue
                 
@@ -215,8 +361,12 @@ def parse_desktop_format(lines):
                 j += 1
             
             if away_team and home_team:
-                market_display = spread['display'] if spread else 'PK'
-                games.append({'Away': away_team, 'Home': home_team, 'Time': time, 'Market': market_display})
+                games.append({
+                    'Away': away_team,
+                    'Home': home_team,
+                    'Time': time,
+                    'Market': spread if spread else 'N/A'
+                })
             
             i = j
         else:
@@ -225,7 +375,7 @@ def parse_desktop_format(lines):
     return games
 
 def parse_mobile_format(lines):
-    """Parse mobile format schedule"""
+    """Parse mobile format - RETURNS SPREAD AS DICT"""
     games = []
     i = 0
     
@@ -250,12 +400,20 @@ def parse_mobile_format(lines):
                             if spread_match:
                                 team_abbrev = spread_match.group(1)
                                 spread_value = spread_match.group(2)
-                                spread = f"{team_abbrev} {spread_value}"
+                                spread = {
+                                    'original_abbrev': team_abbrev,
+                                    'value': spread_value,
+                                    'display': f"{team_abbrev} {spread_value}"
+                                }
                             break
                         j += 1
                     
-                    market_display = spread if spread else 'PK'
-                    games.append({'Away': away_team, 'Home': home_team, 'Time': time, 'Market': market_display})
+                    games.append({
+                        'Away': away_team,
+                        'Home': home_team,
+                        'Time': time,
+                        'Market': spread if spread else 'N/A'
+                    })
             
             i += 6
         else:
@@ -264,7 +422,7 @@ def parse_mobile_format(lines):
     return games
 
 def load_ats_data_from_text(text):
-    """Parse ATS data from TeamRankings paste"""
+    """Parse ATS data from TeamRankings"""
     ats_dict = {}
     lines = text.strip().split('\n')
     
@@ -280,7 +438,6 @@ def load_ats_data_from_text(text):
             ats_record = match.group(3)
             cover_pct = match.group(4)
             ats_pm = float(match.group(5))
-            
             ats_dict[team_name] = {'rank': rank, 'record': ats_record, 'cover_pct': cover_pct, 'ats_pm': ats_pm}
             continue
         
@@ -290,67 +447,32 @@ def load_ats_data_from_text(text):
             ats_record = match2.group(2)
             cover_pct = match2.group(3)
             ats_pm = float(match2.group(4))
-            
             ats_dict[team_name] = {'rank': 'N/A', 'record': ats_record, 'cover_pct': cover_pct, 'ats_pm': ats_pm}
     
     return ats_dict
 
 def find_team_cover_pct(team_name, ats_dict, name_mapping):
-    """Find team's cover percentage with name mapping"""
+    """Find cover % with name mapping"""
     if team_name in ats_dict:
         return ats_dict[team_name]['cover_pct']
-    
     if team_name in name_mapping:
         mapped_name = name_mapping[team_name]
         if mapped_name in ats_dict:
             return ats_dict[mapped_name]['cover_pct']
-    
     return None
 
 def find_team_ats_plus_minus(team_name, ats_dict, name_mapping):
-    """Find team's ATS +/- with name mapping"""
+    """Find ATS +/- with name mapping"""
     if team_name in ats_dict:
         return ats_dict[team_name]['ats_pm']
-    
     if team_name in name_mapping:
         mapped_name = name_mapping[team_name]
         if mapped_name in ats_dict:
             return ats_dict[mapped_name]['ats_pm']
-    
     return None
 
-def flip_spread_if_needed(market, away_team, home_team, away_cover, home_cover):
-    """Flip spread to show perspective of team with higher cover %"""
-    if not away_cover or not home_cover or market == 'PK':
-        return market
-    
-    away_pct = float(away_cover.replace('%', ''))
-    home_pct = float(home_cover.replace('%', ''))
-    
-    if away_pct == home_pct:
-        return market
-    
-    match = re.match(r'^([A-Z0-9&\-]+)\s+([-+]?\d+\.?\d*)$', market)
-    if not match:
-        return market
-    
-    team_abbrev = match.group(1)
-    spread_value = float(match.group(2))
-    
-    higher_cover_is_away = away_pct > home_pct
-    spread_is_away = True
-    
-    if higher_cover_is_away and not spread_is_away:
-        new_spread = -spread_value
-        return f"{team_abbrev} {new_spread:+.1f}".replace('+', '')
-    elif not higher_cover_is_away and spread_is_away:
-        new_spread = -spread_value
-        return f"{team_abbrev} {new_spread:+.1f}".replace('+', '')
-    
-    return market
-
 def create_daily_chart(games, ats_dict, name_mapping):
-    """Create the daily betting analysis chart"""
+    """Create daily chart with flipped spreads"""
     chart_rows = []
     
     for game in games:
@@ -359,7 +481,6 @@ def create_daily_chart(games, ats_dict, name_mapping):
         
         away_cover = find_team_cover_pct(away_team, ats_dict, name_mapping)
         home_cover = find_team_cover_pct(home_team, ats_dict, name_mapping)
-        
         away_ats_pm = find_team_ats_plus_minus(away_team, ats_dict, name_mapping)
         home_ats_pm = find_team_ats_plus_minus(home_team, ats_dict, name_mapping)
         
@@ -394,7 +515,7 @@ def create_daily_chart(games, ats_dict, name_mapping):
     return chart_rows
 
 def create_xlsx_file(chart_rows, filename):
-    """Create XLSX file with color coding"""
+    """Create XLSX with color coding"""
     wb = Workbook()
     ws = wb.active
     ws.title = "Daily Chart"
@@ -453,7 +574,7 @@ def create_xlsx_file(chart_rows, filename):
     
     wb.save(filename)
 
-# Ensure static directory exists when app starts
+# Ensure static directory exists
 os.makedirs('static', exist_ok=True)
 
 @app.route('/', methods=['GET', 'POST'])
@@ -495,7 +616,7 @@ def index():
 
 @app.route('/download/<filename>')
 def download(filename):
-    """Download the generated XLSX file"""
+    """Download generated file"""
     return send_file(os.path.join('static', filename), as_attachment=True)
 
 if __name__ == '__main__':
