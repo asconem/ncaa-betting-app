@@ -127,6 +127,9 @@ def load_team_name_mapping():
         'Xavier': 'Xavier', 'Yale': 'Yale',
     }
 
+# Load the mapping when the module is imported
+load_team_name_mapping()
+
 def parse_espn_schedule_from_text(text):
     """Parse ESPN schedule from pasted text"""
     lines = text.strip().split('\n')
@@ -496,6 +499,4 @@ def download(filename):
     return send_file(os.path.join('static', filename), as_attachment=True)
 
 if __name__ == '__main__':
-    os.makedirs('static', exist_ok=True)
-    load_team_name_mapping()
     app.run(debug=True)
