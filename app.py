@@ -624,8 +624,19 @@ def index():
         espn_schedule = request.form.get('espn_schedule', '')
         teamrankings_ats = request.form.get('teamrankings_ats', '')
         
+        # Input validation
         if not espn_schedule or not teamrankings_ats:
             flash('Please provide both ESPN schedule and TeamRankings ATS data', 'error')
+            return redirect(url_for('index'))
+        
+        # Size limits: 500KB per input (way more than needed for legitimate use)
+        MAX_INPUT_SIZE = 500000  # 500KB in bytes
+        if len(espn_schedule) > MAX_INPUT_SIZE:
+            flash(f'ESPN schedule data is too large ({len(espn_schedule):,} characters). Maximum allowed is {MAX_INPUT_SIZE:,} characters.', 'error')
+            return redirect(url_for('index'))
+        
+        if len(teamrankings_ats) > MAX_INPUT_SIZE:
+            flash(f'TeamRankings ATS data is too large ({len(teamrankings_ats):,} characters). Maximum allowed is {MAX_INPUT_SIZE:,} characters.', 'error')
             return redirect(url_for('index'))
         
         try:
