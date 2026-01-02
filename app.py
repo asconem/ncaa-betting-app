@@ -489,8 +489,9 @@ def find_team_ats_plus_minus(team_name, ats_dict, name_mapping):
     return None
 
 def create_daily_chart(games, ats_dict, name_mapping):
-    """Create daily chart with flipped spreads"""
+    """Create daily chart with flipped spreads and track unmapped teams"""
     chart_rows = []
+    unmapped_teams = set()
     
     for game in games:
         away_team = game['Away']
@@ -500,6 +501,12 @@ def create_daily_chart(games, ats_dict, name_mapping):
         home_cover = find_team_cover_pct(home_team, ats_dict, name_mapping)
         away_ats_pm = find_team_ats_plus_minus(away_team, ats_dict, name_mapping)
         home_ats_pm = find_team_ats_plus_minus(home_team, ats_dict, name_mapping)
+        
+        # Track unmapped teams
+        if not away_cover:
+            unmapped_teams.add(away_team)
+        if not home_cover:
+            unmapped_teams.add(home_team)
         
         avg_conf = ''
         play_team_ats = ''
@@ -529,7 +536,7 @@ def create_daily_chart(games, ats_dict, name_mapping):
             'Time': game['Time']
         })
     
-    return chart_rows
+    return chart_rows, list(unmapped_teams)
 
 def create_xlsx_file(chart_rows, filename):
     """Create XLSX with color coding"""
@@ -594,9 +601,26 @@ def create_xlsx_file(chart_rows, filename):
 # Ensure static directory exists
 os.makedirs('static', exist_ok=True)
 
+def cleanup_old_files(directory='static', hours=24):
+    """Delete files older than specified hours"""
+    try:
+        now = datetime.now()
+        for filename in os.listdir(directory):
+            if filename.endswith('.xlsx'):
+                filepath = os.path.join(directory, filename)
+                file_modified = datetime.fromtimestamp(os.path.getmtime(filepath))
+                if (now - file_modified).total_seconds() > hours * 3600:
+                    os.remove(filepath)
+                    print(f"Deleted old file: {filename}")
+    except Exception as e:
+        print(f"Error during cleanup: {e}")
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
+        # Clean up old files first
+        cleanup_old_files()
+        
         espn_schedule = request.form.get('espn_schedule', '')
         teamrankings_ats = request.form.get('teamrankings_ats', '')
         
@@ -605,28 +629,59 @@ def index():
             return redirect(url_for('index'))
         
         try:
-            games = parse_espn_schedule_from_text(espn_schedule)
-            ats_dict = load_ats_data_from_text(teamrankings_ats)
-            
-            if not games:
-                flash('Could not parse any games from ESPN schedule', 'error')
+            # Parse ESPN schedule
+            try:
+                games = parse_espn_schedule_from_text(espn_schedule)
+                if not games:
+                    flash('Could not parse any games from ESPN schedule. Make sure you copied from the date through the last Gamecast button.', 'error')
+                    return redirect(url_for('index'))
+            except Exception as e:
+                flash(f'ESPN parsing error: {str(e)}. Please check your ESPN schedule format.', 'error')
                 return redirect(url_for('index'))
             
-            if not ats_dict:
-                flash('Could not parse ATS data from TeamRankings', 'error')
+            # Parse TeamRankings data
+            try:
+                ats_dict = load_ats_data_from_text(teamrankings_ats)
+                if not ats_dict:
+                    flash('Could not parse ATS data from TeamRankings. Make sure you copied the entire table.', 'error')
+                    return redirect(url_for('index'))
+            except Exception as e:
+                flash(f'TeamRankings parsing error: {str(e)}. Please check your ATS data format.', 'error')
                 return redirect(url_for('index'))
             
-            chart_rows = create_daily_chart(games, ats_dict, TEAM_NAME_MAPPING)
+            # Create chart and get unmapped teams
+            try:
+                chart_rows, unmapped_teams = create_daily_chart(games, ats_dict, TEAM_NAME_MAPPING)
+            except Exception as e:
+                flash(f'Chart generation error: {str(e)}', 'error')
+                return redirect(url_for('index'))
             
-            output_filename = f'daily_chart_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
-            output_path = os.path.join('static', output_filename)
-            create_xlsx_file(chart_rows, output_path)
+            # Create Excel file
+            try:
+                output_filename = f'daily_chart_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+                output_path = os.path.join('static', output_filename)
+                create_xlsx_file(chart_rows, output_path)
+            except Exception as e:
+                flash(f'File creation error: {str(e)}', 'error')
+                return redirect(url_for('index'))
             
+            # Show success message
             flash(f'Successfully generated chart with {len(chart_rows)} games!', 'success')
-            return render_template('index.html', chart_rows=chart_rows, download_file=output_filename, games_count=len(games), teams_count=len(ats_dict))
+            
+            # Warn about unmapped teams
+            if unmapped_teams:
+                teams_list = ', '.join(sorted(unmapped_teams))
+                flash(f'Warning: Could not find ATS data for {len(unmapped_teams)} team(s): {teams_list}', 'error')
+            
+            return render_template('index.html', 
+                                 chart_rows=chart_rows, 
+                                 download_file=output_filename, 
+                                 games_count=len(games), 
+                                 teams_count=len(ats_dict),
+                                 unmapped_teams=unmapped_teams)
         
         except Exception as e:
-            flash(f'Error processing data: {str(e)}', 'error')
+            flash(f'Unexpected error: {str(e)}', 'error')
             return redirect(url_for('index'))
     
     return render_template('index.html')
