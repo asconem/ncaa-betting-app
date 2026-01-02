@@ -1,12 +1,37 @@
 from flask import Flask, render_template, request, send_file, flash, redirect, url_for
 import os
 import re
+import logging
+from logging.handlers import RotatingFileHandler
 from openpyxl import Workbook
 from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
 from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-change-this-in-production'
+
+# Configure logging
+if not os.path.exists('logs'):
+    os.makedirs('logs')
+
+logger = logging.getLogger('ncaa_ats_app')
+logger.setLevel(logging.INFO)
+
+# File handler with rotation (10MB max, keep 7 backup files)
+file_handler = RotatingFileHandler('logs/app.log', maxBytes=10*1024*1024, backupCount=7)
+file_handler.setLevel(logging.INFO)
+
+# Console handler
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+
+# Format: timestamp - level - message
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+file_handler.setFormatter(formatter)
+console_handler.setFormatter(formatter)
+
+logger.addHandler(file_handler)
+logger.addHandler(console_handler)
 
 # Team name mapping - ESPN Name -> TeamRankings Name
 TEAM_NAME_MAPPING = {}
@@ -605,19 +630,24 @@ def cleanup_old_files(directory='static', hours=24):
     """Delete files older than specified hours"""
     try:
         now = datetime.now()
+        deleted_count = 0
         for filename in os.listdir(directory):
             if filename.endswith('.xlsx'):
                 filepath = os.path.join(directory, filename)
                 file_modified = datetime.fromtimestamp(os.path.getmtime(filepath))
                 if (now - file_modified).total_seconds() > hours * 3600:
                     os.remove(filepath)
-                    print(f"Deleted old file: {filename}")
+                    deleted_count += 1
+        if deleted_count > 0:
+            logger.info(f"Cleanup: deleted {deleted_count} old file(s)")
     except Exception as e:
-        print(f"Error during cleanup: {e}")
+        logger.error(f"Error during file cleanup: {e}")
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
+        logger.info("Chart generation request received")
+        
         # Clean up old files first
         cleanup_old_files()
         
@@ -626,16 +656,19 @@ def index():
         
         # Input validation
         if not espn_schedule or not teamrankings_ats:
+            logger.warning("Request missing ESPN or TeamRankings data")
             flash('Please provide both ESPN schedule and TeamRankings ATS data', 'error')
             return redirect(url_for('index'))
         
         # Size limits: 500KB per input (way more than needed for legitimate use)
         MAX_INPUT_SIZE = 500000  # 500KB in bytes
         if len(espn_schedule) > MAX_INPUT_SIZE:
+            logger.warning(f"ESPN data too large: {len(espn_schedule)} characters")
             flash(f'ESPN schedule data is too large ({len(espn_schedule):,} characters). Maximum allowed is {MAX_INPUT_SIZE:,} characters.', 'error')
             return redirect(url_for('index'))
         
         if len(teamrankings_ats) > MAX_INPUT_SIZE:
+            logger.warning(f"TeamRankings data too large: {len(teamrankings_ats)} characters")
             flash(f'TeamRankings ATS data is too large ({len(teamrankings_ats):,} characters). Maximum allowed is {MAX_INPUT_SIZE:,} characters.', 'error')
             return redirect(url_for('index'))
         
@@ -644,9 +677,12 @@ def index():
             try:
                 games = parse_espn_schedule_from_text(espn_schedule)
                 if not games:
+                    logger.error("ESPN schedule parsing returned no games")
                     flash('Could not parse any games from ESPN schedule. Make sure you copied from the date through the last Gamecast button.', 'error')
                     return redirect(url_for('index'))
+                logger.info(f"Successfully parsed {len(games)} games from ESPN schedule")
             except Exception as e:
+                logger.error(f"ESPN parsing error: {str(e)}")
                 flash(f'ESPN parsing error: {str(e)}. Please check your ESPN schedule format.', 'error')
                 return redirect(url_for('index'))
             
@@ -654,16 +690,21 @@ def index():
             try:
                 ats_dict = load_ats_data_from_text(teamrankings_ats)
                 if not ats_dict:
+                    logger.error("TeamRankings parsing returned no data")
                     flash('Could not parse ATS data from TeamRankings. Make sure you copied the entire table.', 'error')
                     return redirect(url_for('index'))
+                logger.info(f"Successfully parsed {len(ats_dict)} teams from TeamRankings")
             except Exception as e:
+                logger.error(f"TeamRankings parsing error: {str(e)}")
                 flash(f'TeamRankings parsing error: {str(e)}. Please check your ATS data format.', 'error')
                 return redirect(url_for('index'))
             
             # Create chart and get unmapped teams
             try:
                 chart_rows, unmapped_teams = create_daily_chart(games, ats_dict, TEAM_NAME_MAPPING)
+                logger.info(f"Chart created with {len(chart_rows)} rows")
             except Exception as e:
+                logger.error(f"Chart generation error: {str(e)}")
                 flash(f'Chart generation error: {str(e)}', 'error')
                 return redirect(url_for('index'))
             
@@ -672,16 +713,20 @@ def index():
                 output_filename = f'daily_chart_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
                 output_path = os.path.join('static', output_filename)
                 create_xlsx_file(chart_rows, output_path)
+                logger.info(f"Excel file created: {output_filename}")
             except Exception as e:
+                logger.error(f"File creation error: {str(e)}")
                 flash(f'File creation error: {str(e)}', 'error')
                 return redirect(url_for('index'))
             
             # Show success message
             flash(f'Successfully generated chart with {len(chart_rows)} games!', 'success')
+            logger.info(f"Chart generation successful - {len(chart_rows)} games, {len(ats_dict)} teams tracked")
             
             # Warn about unmapped teams
             if unmapped_teams:
                 teams_list = ', '.join(sorted(unmapped_teams))
+                logger.warning(f"Unmapped teams ({len(unmapped_teams)}): {teams_list}")
                 flash(f'Warning: Could not find ATS data for {len(unmapped_teams)} team(s): {teams_list}', 'error')
             
             return render_template('index.html', 
@@ -692,6 +737,7 @@ def index():
                                  unmapped_teams=unmapped_teams)
         
         except Exception as e:
+            logger.error(f"Unexpected error: {str(e)}")
             flash(f'Unexpected error: {str(e)}', 'error')
             return redirect(url_for('index'))
     
