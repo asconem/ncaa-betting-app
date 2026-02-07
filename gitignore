@@ -1,0 +1,20 @@
+# Logs
+logs/
+*.log
+
+# Excel files
+static/*.xlsx
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment
+.env
+venv/
+.venv/
+
+# IDE
+.vscode/
+.idea/
