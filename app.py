@@ -16,51 +16,35 @@ def clean_team_name(name):
     if not name:
         return name
     # Removes records/conferences: e.g., (15-92-4Away) or (20-29-2Big Ten)
-    name = re.sub(r'\(\d+-\d+.*?\)[\w\s]*$', '', name)
+    name = re.sub(r'\(?\d+-\d+.*?\)[\w\s]*$', '', name)
     # Removes leading rankings: e.g., '9 ' from '9 Nebraska'
     name = re.sub(r'^\d+\s+', '', name)
     return name.strip()
 
-# Complete mapping to ensure ESPN names match TeamRankings names
 TEAM_NAME_MAPPING = {
-    'Long Island University': 'LIU',
-    'Long Island': 'LIU',
-    'Massachusetts': 'UMass',
-    'Arkansas-Pine Bluff': 'AR-Pine Bluff',
-    'Abilene Christian': 'Abl Christian',
-    'Alabama State': 'Alabama St',
-    'Appalachian State': 'App State',
-    'Coastal Carolina': 'Coastal Car',
-    'East Carolina': 'E Carolina',
-    'Loyola Maryland': 'Loyola MD',
-    'IU Indianapolis': 'IU Indy',
-    'Saint Francis': 'St Francis PA',
-    'Middle Tennessee': 'Middle Tenn',
-    'New Hampshire': 'New Hampshire',
-    'Eastern Michigan': 'E Michigan',
-    'Portland State': 'Portland St',
-    'Sam Houston': 'Sam Houston',
-    'SF Austin': 'SF Austin'
+    'Long Island University': 'LIU', 'Long Island': 'LIU', 'Massachusetts': 'UMass',
+    'Arkansas-Pine Bluff': 'AR-Pine Bluff', 'Abilene Christian': 'Abl Christian',
+    'Alabama State': 'Alabama St', 'Appalachian State': 'App State',
+    'Coastal Carolina': 'Coastal Car', 'East Carolina': 'E Carolina',
+    'Loyola Maryland': 'Loyola MD', 'IU Indianapolis': 'IU Indy',
+    'Saint Francis': 'St Francis PA', 'Middle Tennessee': 'Middle Tenn',
+    'New Hampshire': 'New Hampshire', 'Eastern Michigan': 'E Michigan',
+    'Portland State': 'Portland St', 'Sam Houston': 'Sam Houston', 'SF Austin': 'SF Austin'
 }
 
-# --- 2. ATS DATA PARSER (Team | Record | Cover% | MOV | ATS +/-) ---
+# --- 2. DATA PARSERS ---
 def load_ats_data_from_text(text):
-    """Parses raw ATS data without expecting headers"""
+    """Parses raw 5-column ATS data: Team | Record | Cover% | MOV | ATS +/-"""
     ats_dict = {}
     for line in text.strip().split('\n'):
         line = line.strip()
         if not line: continue
-        # Matches: Team Name | Record | Cover% | MOV | ATS +/-
         match = re.search(r'^(.+?)\s+(\d+-\d+-?\d*)\s+([\d.]+%)\s+([-+]?\d+\.?\d*)\s+([-+]?\d+\.?\d*)$', line)
         if match:
             team_name = match.group(1).strip()
-            ats_dict[team_name] = {
-                'cover_pct': match.group(3),
-                'ats_pm': float(match.group(5))
-            }
+            ats_dict[team_name] = {'cover_pct': match.group(3), 'ats_pm': float(match.group(5))}
     return ats_dict
 
-# --- 3. SCHEDULE PARSER (ESPN Desktop) ---
 def parse_espn_schedule_from_text(text):
     """Extracts games and cleans team names from ESPN text blocks"""
     lines = [l.strip() for l in text.strip().split('\n') if l.strip()]
@@ -73,11 +57,9 @@ def parse_espn_schedule_from_text(text):
             j = i + 1
             while j < min(i+40, len(lines)):
                 check_line = lines[j]
-                # If we find a record line, the team name was on the line above it
                 if re.match(r'^\(\d+-\d+.*?\)$', check_line):
                     if not away_team: away_team = clean_team_name(lines[j-1])
                     elif not home_team: home_team = clean_team_name(lines[j-1])
-
                 if "Spread:" in check_line:
                     match = re.search(r'Spread:([A-Z0-9&\-]+)\s+([-+]?\d+\.?\d*)', check_line)
                     if match:
@@ -91,19 +73,16 @@ def parse_espn_schedule_from_text(text):
         else: i += 1
     return games
 
-# --- 4. ABBREVIATION & SPREAD LOGIC ---
+# --- 3. HELPER LOGIC ---
 def derive_abbreviation(team_name):
-    """Fallback to capture the 4-letter abbrev often used in spreads"""
     abbrev_map = {'Nebraska': 'NEB', 'Virginia': 'UVA', 'Arkansas': 'ARK', 'Syracuse': 'SYR', 'Massachusetts': 'MASS'}
     return abbrev_map.get(team_name, team_name[:4].upper())
 
 def flip_spread_if_needed(market, away_team, home_team, away_cover, home_cover):
-    """Sets the Market perspective to the team with the higher cover percentage"""
     if not market or market == 'N/A' or not away_cover or not home_cover:
         return 'N/A'
     a_pct, h_pct = float(away_cover.replace('%','')), float(home_cover.replace('%',''))
-    orig_val = float(market['value'])
-    orig_abbrev = market['original_abbrev'].upper()
+    orig_val, orig_abbrev = float(market['value']), market['original_abbrev'].upper()
     away_abbrev = derive_abbreviation(away_team).upper()
     orig_is_away = (orig_abbrev == away_abbrev)
 
@@ -115,7 +94,19 @@ def flip_spread_if_needed(market, away_team, home_team, away_cover, home_cover):
         final_val = orig_val if not orig_is_away else -orig_val
         return f"{home_abbrev} {final_val:+g}"
 
-# --- 5. ROUTES & EXECUTION ---
+def create_xlsx_file(chart_rows, filename):
+    wb = Workbook()
+    ws = wb.active
+    headers = ['Away', 'Home', 'Market', 'A Cover %', 'H Cover %', 'Avg Conf', 'ATS +/-', 'Time']
+    ws.append(headers)
+    for row_data in chart_rows:
+        ws.append([row_data[k] for k in headers])
+        if row_data['Avg Conf'] and float(row_data['Avg Conf']) >= 30:
+            color = "90EE90" if float(row_data['Avg Conf']) >= 50 else "FFFF00"
+            for cell in ws[ws.max_row]: cell.fill = PatternFill(start_color=color, fill_type="solid")
+    wb.save(filename)
+
+# --- 4. APP ROUTES ---
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
@@ -150,9 +141,17 @@ def index():
                 'Market': flip_spread_if_needed(game['Market'], away, home, a_pct, h_pct)
             })
 
+        fname = f'daily_chart_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+        create_xlsx_file(chart_rows, os.path.join('static', fname))
+
         if unmapped: flash(f"Unmapped: {', '.join(sorted(unmapped))}", 'error')
-        return render_template('index.html', chart_rows=chart_rows, games_count=len(chart_rows), teams_count=len(ats))
+        return render_template('index.html', chart_rows=chart_rows, download_file=fname,
+                               games_count=len(chart_rows), teams_count=len(ats))
     return render_template('index.html')
+
+@app.route('/download/<filename>')
+def download(filename):
+    return send_file(os.path.join('static', filename), as_attachment=True)
 
 if __name__ == '__main__':
     app.run(debug=True)
